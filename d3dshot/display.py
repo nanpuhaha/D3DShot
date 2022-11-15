@@ -73,16 +73,17 @@ class Display:
         if region is None:
             return (0, 0, self.resolution[0], self.resolution[1])
 
-        clean_region = list()
+        clean_region = [
+            0 if region[0] < 0 or region[0] > self.resolution[0] else region[0],
+            0 if region[1] < 0 or region[1] > self.resolution[1] else region[1],
+            self.resolution[0]
+            if region[2] < 0 or region[2] > self.resolution[0]
+            else region[2],
+            self.resolution[1]
+            if region[3] < 0 or region[3] > self.resolution[1]
+            else region[3],
+        ]
 
-        clean_region.append(0 if region[0] < 0 or region[0] > self.resolution[0] else region[0])
-        clean_region.append(0 if region[1] < 0 or region[1] > self.resolution[1] else region[1])
-        clean_region.append(
-            self.resolution[0] if region[2] < 0 or region[2] > self.resolution[0] else region[2]
-        )
-        clean_region.append(
-            self.resolution[1] if region[3] < 0 or region[3] > self.resolution[1] else region[3]
-        )
 
         return tuple(clean_region)
 
@@ -93,7 +94,7 @@ class Display:
         dxgi_factory = d3dshot.dll.dxgi.initialize_dxgi_factory()
         dxgi_adapters = d3dshot.dll.dxgi.discover_dxgi_adapters(dxgi_factory)
 
-        displays = list()
+        displays = []
 
         for dxgi_adapter in dxgi_adapters:
             dxgi_adapter_description = d3dshot.dll.dxgi.describe_dxgi_adapter(dxgi_adapter)

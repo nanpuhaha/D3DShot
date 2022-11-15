@@ -12,15 +12,16 @@ from d3dshot.capture_output import CaptureOutput, CaptureOutputs
 class Singleton(type):
     _instances = {}
 
-    def __call__(cls, *args, **kwargs):
-        if cls not in cls._instances:
-            cls._instances[cls] = super(Singleton, cls).__call__(*args, **kwargs)
+    def __call__(self, *args, **kwargs):
+        if self not in self._instances:
+            self._instances[self] = super(Singleton, self).__call__(*args, **kwargs)
         else:
             print(
-                f"Only 1 instance of {cls.__name__} is allowed per process! Returning the existing instance..."
+                f"Only 1 instance of {self.__name__} is allowed per process! Returning the existing instance..."
             )
 
-        return cls._instances[cls]
+
+        return self._instances[self]
 
 
 class D3DShot(metaclass=Singleton):
@@ -36,17 +37,15 @@ class D3DShot(metaclass=Singleton):
         self.displays = None
         self.detect_displays()
 
-        self.display = self.displays[0] if len(self.displays) > 0 else None
-
-        for display in self.displays:
-            if display.is_primary:
-                self.display = display
-                break
+        self.display = next(
+            (display for display in self.displays if display.is_primary),
+            self.displays[0] if len(self.displays) > 0 else None,
+        )
 
         self.capture_output = CaptureOutput(backend=capture_output)
 
         self.frame_buffer_size = frame_buffer_size
-        self.frame_buffer = collections.deque(list(), self.frame_buffer_size)
+        self.frame_buffer = collections.deque([], self.frame_buffer_size)
 
         self.previous_screenshot = None
 
@@ -74,7 +73,7 @@ class D3DShot(metaclass=Singleton):
         return self.frame_buffer[frame_index]
 
     def get_frames(self, frame_indices):
-        frames = list()
+        frames = []
 
         for frame_index in frame_indices:
             frame = self.get_frame(frame_index)
@@ -191,7 +190,7 @@ class D3DShot(metaclass=Singleton):
         return True
 
     def benchmark(self):
-        print(f"Preparing Benchmark...")
+        print("Preparing Benchmark...")
         print("")
         print(f"Capture Output: {self.capture_output.backend.__class__.__name__}")
         print(f"Display: {self.display}")
@@ -215,10 +214,10 @@ class D3DShot(metaclass=Singleton):
         self.displays = Display.discover_displays()
 
     def _reset_displays(self):
-        self.displays = list()
+        self.displays = []
 
     def _reset_frame_buffer(self):
-        self.frame_buffer = collections.deque(list(), self.frame_buffer_size)
+        self.frame_buffer = collections.deque([], self.frame_buffer_size)
 
     def _validate_region(self, region):
         region = region or self.region or None
@@ -239,15 +238,15 @@ class D3DShot(metaclass=Singleton):
                 valid = False
                 break
 
-            if i == 2:
-                if value <= region[0]:
-                    valid = False
-                    break
-            elif i == 3:
-                if value <= region[1]:
-                    valid = False
-                    break
-
+            if (
+                i == 2
+                and value <= region[0]
+                or i != 2
+                and i == 3
+                and value <= region[1]
+            ):
+                valid = False
+                break
         if not valid:
             raise AttributeError(
                 """Invalid 'region' tuple. Make sure all values are ints and that 'right' and 
@@ -258,7 +257,7 @@ class D3DShot(metaclass=Singleton):
 
     def _validate_target_fps(self, target_fps):
         if not isinstance(target_fps, int) or target_fps < 1:
-            raise AttributeError(f"'target_fps' should be an int greater than 0")
+            raise AttributeError("'target_fps' should be an int greater than 0")
 
         return target_fps
 
@@ -305,9 +304,8 @@ class D3DShot(metaclass=Singleton):
 
             if frame is not None:
                 self.frame_buffer.appendleft(frame)
-            else:
-                if len(self.frame_buffer):
-                    self.frame_buffer.appendleft(self.frame_buffer[0])
+            elif len(self.frame_buffer):
+                self.frame_buffer.appendleft(self.frame_buffer[0])
 
             gc.collect()
 
